@@ -31,7 +31,7 @@
 <body>
   <div id="controls">
     <label for="address">Введите адрес:</label><br>
-    <input id="address" type="text" placeholder="Укажите место назначения"><br>
+    <input id="address" type="text" placeholder="Например, Kabanbay Batyr Ave 1"><br>
     
     <label for="mode">Выбери транспорт:</label>
     <select id="mode">
@@ -49,7 +49,6 @@
     let directionsService;
     let directionsRenderer;
     let userLocation;
-    let autocomplete;
 
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
@@ -61,7 +60,6 @@
       directionsRenderer = new google.maps.DirectionsRenderer();
       directionsRenderer.setMap(map);
 
-      // Запрашиваем местоположение пользователя
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -77,52 +75,50 @@
             });
           },
           () => {
-            alert("Не удалось получить ваше местоположение.");
+            alert("Не удалось получить местоположение.");
           }
         );
       } else {
-        alert("Геолокация не поддерживается вашим браузером.");
+        alert("Геолокация не поддерживается.");
       }
 
-      // Autocomplete для ввода адреса
-      autocomplete = new google.maps.places.Autocomplete(
-        document.getElementById("address"),
-        {
-          fields: ["geometry"],
-          types: ["geocode"],
-        }
-      );
-
-      // Обработка кнопки "Построить маршрут"
       document.getElementById("buildRoute").addEventListener("click", () => {
-        const place = autocomplete.getPlace();
-        if (!userLocation) {
-          alert("Местоположение ещё не определено.");
-          return;
-        }
-
-        if (!place || !place.geometry) {
-          alert("Пожалуйста, выберите адрес из выпадающего списка.");
-          return;
-        }
-
-        const destination = place.geometry.location;
+        const address = document.getElementById("address").value;
         const selectedMode = document.getElementById("mode").value;
 
-        directionsService.route(
-          {
-            origin: userLocation,
-            destination: destination,
-            travelMode: google.maps.TravelMode[selectedMode],
-          },
-          (response, status) => {
-            if (status === "OK") {
-              directionsRenderer.setDirections(response);
-            } else {
-              alert("Не удалось построить маршрут: " + status);
-            }
+        if (!userLocation) {
+          alert("Местоположение не определено.");
+          return;
+        }
+
+        if (!address) {
+          alert("Введите адрес назначения.");
+          return;
+        }
+
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: address }, (results, status) => {
+          if (status === "OK") {
+            const destination = results[0].geometry.location;
+
+            directionsService.route(
+              {
+                origin: userLocation,
+                destination: destination,
+                travelMode: google.maps.TravelMode[selectedMode],
+              },
+              (response, status) => {
+                if (status === "OK") {
+                  directionsRenderer.setDirections(response);
+                } else {
+                  alert("Не удалось построить маршрут: " + status);
+                }
+              }
+            );
+          } else {
+            alert("Адрес не найден: " + status);
           }
-        );
+        });
       });
     }
   </script>
@@ -130,7 +126,7 @@
   <script
     async
     defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyArLRHdatabSv8a2IDr_-u6qvUF2ZLIHbY&libraries=places&callback=initMap">
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyArLRHdatabSv8a2IDr_-u6qvUF2ZLIHbY&callback=initMap">
   </script>
 </body>
 </html>
