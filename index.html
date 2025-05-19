@@ -1,0 +1,136 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>GoWay — AstanaMap</title>
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      z-index: 5;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    #address {
+      width: 300px;
+      margin-bottom: 5px;
+    }
+    #buildRoute {
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <label for="address">Введите адрес:</label><br>
+    <input id="address" type="text" placeholder="Укажите место назначения"><br>
+    
+    <label for="mode">Выбери транспорт:</label>
+    <select id="mode">
+      <option value="WALKING">Пешком</option>
+      <option value="DRIVING">Машина</option>
+      <option value="TRANSIT">Автобус</option>
+    </select><br>
+
+    <button id="buildRoute">Построить маршрут</button>
+  </div>
+  <div id="map"></div>
+
+  <script>
+    let map;
+    let directionsService;
+    let directionsRenderer;
+    let userLocation;
+    let autocomplete;
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 51.1605, lng: 71.4704 },
+        zoom: 13,
+      });
+
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer();
+      directionsRenderer.setMap(map);
+
+      // Запрашиваем местоположение пользователя
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            userLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+
+            new google.maps.Marker({
+              position: userLocation,
+              map: map,
+              title: "Вы здесь",
+            });
+          },
+          () => {
+            alert("Не удалось получить ваше местоположение.");
+          }
+        );
+      } else {
+        alert("Геолокация не поддерживается вашим браузером.");
+      }
+
+      // Autocomplete для ввода адреса
+      autocomplete = new google.maps.places.Autocomplete(
+        document.getElementById("address"),
+        {
+          fields: ["geometry"],
+          types: ["geocode"],
+        }
+      );
+
+      // Обработка кнопки "Построить маршрут"
+      document.getElementById("buildRoute").addEventListener("click", () => {
+        const place = autocomplete.getPlace();
+        if (!userLocation) {
+          alert("Местоположение ещё не определено.");
+          return;
+        }
+
+        if (!place || !place.geometry) {
+          alert("Пожалуйста, выберите адрес из выпадающего списка.");
+          return;
+        }
+
+        const destination = place.geometry.location;
+        const selectedMode = document.getElementById("mode").value;
+
+        directionsService.route(
+          {
+            origin: userLocation,
+            destination: destination,
+            travelMode: google.maps.TravelMode[selectedMode],
+          },
+          (response, status) => {
+            if (status === "OK") {
+              directionsRenderer.setDirections(response);
+            } else {
+              alert("Не удалось построить маршрут: " + status);
+            }
+          }
+        );
+      });
+    }
+  </script>
+
+  <script
+    async
+    defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyArLRHdatabSv8a2IDr_-u6qvUF2ZLIHbY&libraries=places&callback=initMap">
+  </script>
+</body>
+</html>
